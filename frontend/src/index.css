@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Whispers Journaling App Design System - Voice-First Interface */
+
+@layer base {
+  :root {
+    --background: oklch(0.9582 0.0152 90.2357);
+    --foreground: oklch(0.3760 0.0225 64.3434);
+    --card: oklch(0.9914 0.0098 87.4695);
+    --card-foreground: oklch(0.3760 0.0225 64.3434);
+    --popover: oklch(0.9914 0.0098 87.4695);
+    --popover-foreground: oklch(0.3760 0.0225 64.3434);
+    --primary: oklch(0.6180 0.0778 65.5444);
+    --primary-foreground: oklch(1.0000 0 0);
+    --secondary: oklch(0.8846 0.0302 85.5655);
+    --secondary-foreground: oklch(0.4313 0.0300 64.9288);
+    --muted: oklch(0.9239 0.0190 83.0636);
+    --muted-foreground: oklch(0.5391 0.0387 71.1655);
+    --accent: oklch(0.8348 0.0426 88.8064);
+    --accent-foreground: oklch(0.3760 0.0225 64.3434);
+    --destructive: oklch(0.5471 0.1438 32.9149);
+    --destructive-foreground: oklch(1.0000 0 0);
+    --border: oklch(0.8606 0.0321 84.5881);
+    --input: oklch(0.8606 0.0321 84.5881);
+    --ring: oklch(0.6180 0.0778 65.5444);
+    --chart-1: oklch(0.6180 0.0778 65.5444);
+    --chart-2: oklch(0.5604 0.0624 68.5805);
+    --chart-3: oklch(0.4851 0.0570 72.6827);
+    --chart-4: oklch(0.6777 0.0624 64.7755);
+    --chart-5: oklch(0.7264 0.0581 66.6967);
+    --sidebar: oklch(0.9239 0.0190 83.0636);
+    --sidebar-foreground: oklch(0.3760 0.0225 64.3434);
+    --sidebar-primary: oklch(0.6180 0.0778 65.5444);
+    --sidebar-primary-foreground: oklch(1.0000 0 0);
+    --sidebar-accent: oklch(0.8348 0.0426 88.8064);
+    --sidebar-accent-foreground: oklch(0.3760 0.0225 64.3434);
+    --sidebar-border: oklch(0.8606 0.0321 84.5881);
+    --sidebar-ring: oklch(0.6180 0.0778 65.5444);
+    --font-sans: Libre Baskerville, serif;
+    --font-serif: Lora, serif;
+    --font-mono: IBM Plex Mono, monospace;
+    --radius: 0.25rem;
+    --shadow-2xs: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.06);
+    --shadow-xs: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.06);
+    --shadow-sm: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 1px 2px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 1px 2px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-md: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 2px 4px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-lg: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 4px 6px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-xl: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 8px 10px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-2xl: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.30);
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+    
+    /* Voice recording animation */
+    --recording-pulse: oklch(0.6180 0.0778 65.5444 / 0.8);
+    --recording-glow: oklch(0.6180 0.0778 65.5444 / 0.3);
+  }
+
+  .dark {
+    --background: oklch(0.2747 0.0139 57.6523);
+    --foreground: oklch(0.9239 0.0190 83.0636);
+    --card: oklch(0.3237 0.0155 59.0603);
+    --card-foreground: oklch(0.9239 0.0190 83.0636);
+    --popover: oklch(0.3237 0.0155 59.0603);
+    --popover-foreground: oklch(0.9239 0.0190 83.0636);
+    --primary: oklch(0.7264 0.0581 66.6967);
+    --primary-foreground: oklch(0.2747 0.0139 57.6523);
+    --secondary: oklch(0.3795 0.0181 57.1280);
+    --secondary-foreground: oklch(0.9239 0.0190 83.0636);
+    --muted: oklch(0.3237 0.0155 59.0603);
+    --muted-foreground: oklch(0.7982 0.0243 82.1078);
+    --accent: oklch(0.4186 0.0281 56.3404);
+    --accent-foreground: oklch(0.9239 0.0190 83.0636);
+    --destructive: oklch(0.5471 0.1438 32.9149);
+    --destructive-foreground: oklch(1.0000 0 0);
+    --border: oklch(0.3795 0.0181 57.1280);
+    --input: oklch(0.3795 0.0181 57.1280);
+    --ring: oklch(0.7264 0.0581 66.6967);
+    --chart-1: oklch(0.7264 0.0581 66.6967);
+    --chart-2: oklch(0.6777 0.0624 64.7755);
+    --chart-3: oklch(0.6180 0.0778 65.5444);
+    --chart-4: oklch(0.5604 0.0624 68.5805);
+    --chart-5: oklch(0.4851 0.0570 72.6827);
+    --sidebar: oklch(0.2747 0.0139 57.6523);
+    --sidebar-foreground: oklch(0.9239 0.0190 83.0636);
+    --sidebar-primary: oklch(0.7264 0.0581 66.6967);
+    --sidebar-primary-foreground: oklch(0.2747 0.0139 57.6523);
+    --sidebar-accent: oklch(0.4186 0.0281 56.3404);
+    --sidebar-accent-foreground: oklch(0.9239 0.0190 83.0636);
+    --sidebar-border: oklch(0.3795 0.0181 57.1280);
+    --sidebar-ring: oklch(0.7264 0.0581 66.6967);
+    --font-sans: Libre Baskerville, serif;
+    --font-serif: Lora, serif;
+    --font-mono: IBM Plex Mono, monospace;
+    --radius: 0.25rem;
+    --shadow-2xs: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.06);
+    --shadow-xs: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.06);
+    --shadow-sm: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 1px 2px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 1px 2px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-md: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 2px 4px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-lg: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 4px 6px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-xl: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.12), 2px 8px 10px -1px oklch(0.2747 0.0139 57.6523 / 0.12);
+    --shadow-2xl: 2px 3px 5px 0px oklch(0.2747 0.0139 57.6523 / 0.30);
+    
+    /* Voice recording animation - dark mode */
+    --recording-pulse: oklch(0.7264 0.0581 66.6967 / 0.8);
+    --recording-glow: oklch(0.7264 0.0581 66.6967 / 0.4);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-normal);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+  }
+
+  code, pre {
+    font-family: var(--font-mono);
+  }
+}
+
+@layer components {
+  /* Voice recording pulse animation */
+  .recording-pulse {
+    animation: recording-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes recording-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 var(--recording-pulse);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow: 0 0 0 15px var(--recording-glow);
+      transform: scale(1.1);
+    }
+  }
+
+  /* Transcription text animation */
+  .transcription-appear {
+    animation: transcription-appear 0.3s ease-out;
+  }
+
+  @keyframes transcription-appear {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Elegant shadows using design system */
+  .shadow-elegant {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-whisper {
+    box-shadow: var(--shadow);
+  }
+
+  .shadow-deep {
+    box-shadow: var(--shadow-2xl);
+  }
+}
