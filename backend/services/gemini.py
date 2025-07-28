@@ -1,6 +1,8 @@
 import os
 import requests
 from dotenv import load_dotenv
+from datetime import datetime
+import pyjson
 
 load_dotenv()
 
@@ -123,75 +125,119 @@ User query: {query}
 
 def mcp_search(query, user_id=None):
     """
-    Enhanced MCP tool-calling loop for Gemini:
-    1. Ask Gemini to extract only the most relevant, specific search terms from the user query (not generic words), and let Gemini decide the number of terms dynamically.
-    2. If it's a search, use those terms to query Algolia individually; otherwise, answer directly.
-    3. Always include a simple Gemini response in the output, even for Algolia queries.
-    4. Return a clean, deduplicated, and readable response.
+    Multi-step MCP agent architecture for contextual journal search:
+    
+    Stage 1: Intent Extraction - Gemini analyzes query and extracts search terms
+    Stage 2: Memory Retrieval - Check local memory for similar past queries
+    Stage 3: Search Execution - Query Algolia with extracted terms and user filters
+    Stage 4: Synthesis - Feed results back to Gemini for contextual insights
+    Stage 5: Memory Storage - Store query and results for future reference
     """
     import json as pyjson
     import re
-    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-    headers = {"Content-Type": "application/json"}
-    # Step 1: Ask Gemini to extract search terms and decide if it's a search
-    extraction_prompt = (
-        "You are an AI assistant for a journaling app. "
-        "When the user asks a question about their past journals, "
-        "extract the most relevant search terms and provide a helpful response. "
-        "Return a JSON object with: "
-        "1. 'is_search': 'yes' if this is a search query, 'no' otherwise "
-        "2. 'search_terms': array of specific search terms to use "
-        "3. 'gemini_response': a brief, helpful response about what you're looking for "
-        "Example: {\"is_search\": \"yes\", \"search_terms\": [\"productivity\", \"morning\"], \"gemini_response\": \"I'll search for entries about your productivity and morning routines.\"} "
-        f"User query: {query}"
-    )
-    extraction_payload = {
-        "contents": [{"parts": [{"text": extraction_prompt}]}],
-        "generationConfig": {"maxOutputTokens": 512}
+    import os
+    from datetime import datetime
+    
+    # Initialize response structure
+    response = {
+        "original_query": query,
+        "search_terms": [],
+        "stage1_response": "",
+        "algolia_hits": [],
+        "final_summary": "",
+        "memory_used": False,
+        "timestamp": datetime.now().isoformat()
     }
-    params = {"key": GEMINI_API_KEY}
-    resp = requests.post(url, headers=headers, params=params, json=extraction_payload, timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
+    
+    # ===== STAGE 1: Intent Extraction =====
+    print("🔍 Stage 1: Extracting intent and search terms...")
     try:
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+        headers = {"Content-Type": "application/json"}
+        
+        extraction_prompt = (
+            "You are an AI assistant for a journaling app. "
+            "Analyze the user's query and extract intent and search terms. "
+            "Return a JSON object with: "
+            "1. 'is_search': 'yes' if this requires searching past entries, 'no' otherwise "
+            "2. 'search_terms': array of specific, relevant search terms "
+            "3. 'intent': brief description of what the user is looking for "
+            "4. 'response': a helpful, natural response about what you'll search for "
+            "Example: {\"is_search\": \"yes\", \"search_terms\": [\"productivity\", \"morning\"], \"intent\": \"finding productivity patterns\", \"response\": \"I'll search for entries about your productivity and morning routines.\"} "
+            f"User query: {query}"
+        )
+        
+        payload = {
+            "contents": [{"parts": [{"text": extraction_prompt}]}],
+            "generationConfig": {"maxOutputTokens": 512}
+        }
+        params = {"key": GEMINI_API_KEY}
+        
+        resp = requests.post(url, headers=headers, params=params, json=payload, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        
         response_text = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
-        # Strip code block markers if present
         cleaned = re.sub(r"^```(?:json)?|```$", "", response_text.strip(), flags=re.MULTILINE).strip()
         parsed = pyjson.loads(cleaned)
+        
         is_search = parsed.get("is_search", "no").strip().lower() == "yes"
         search_terms = parsed.get("search_terms", [])
-        gemini_response = parsed.get("gemini_response", "")
-    except Exception:
-        is_search = False
-        search_terms = []
-        gemini_response = ""
-    # Debug print
-    print("User query:", query)
-    print("Gemini full response_text:", response_text)
-    print("Gemini search_terms:", search_terms)
-    print("is_search:", is_search)
-    # Step 2: If it's a search, use search_terms to query Algolia individually
+        intent = parsed.get("intent", "")
+        stage1_response = parsed.get("response", "")
+        
+        response["search_terms"] = search_terms
+        response["stage1_response"] = stage1_response
+        
+        print(f"✅ Stage 1 complete: is_search={is_search}, terms={search_terms}")
+        
+    except Exception as e:
+        print(f"❌ Stage 1 failed: {e}")
+        # Fallback: treat as search with basic terms
+        is_search = True
+        search_terms = query.lower().split()[:3]  # Basic fallback
+        stage1_response = f"I'll search for entries related to your query: {query}"
+        response["search_terms"] = search_terms
+        response["stage1_response"] = stage1_response
+    
+    # ===== STAGE 2: Memory Retrieval =====
+    print("🧠 Stage 2: Checking memory for similar queries...")
+    memory_result = _check_memory(query, search_terms)
+    if memory_result:
+        response["memory_used"] = True
+        response["final_summary"] = memory_result["summary"]
+        print(f"✅ Memory hit: Found similar query from {memory_result['timestamp']}")
+        return response
+    
+    # ===== STAGE 3: Search Execution (only if search needed) =====
+    if not is_search:
+        print("ℹ️ No search needed, returning direct response")
+        response["final_summary"] = stage1_response
+        return response
+    
+    print("🔍 Stage 3: Executing Algolia search...")
     algolia_results = []
     seen_ids = set()
-    if is_search and search_terms:
+    
+    try:
         headers_algolia = {
             "X-Algolia-API-Key": ALGOLIA_SEARCH_KEY or ALGOLIA_API_KEY,
             "X-Algolia-Application-Id": ALGOLIA_APP_ID,
             "Content-Type": "application/json"
         }
+        
         for term in search_terms:
-            print(f"Searching Algolia for term: '{term}' ...", end=' ')
-            # Add user_id filter if provided
-            filter_str = f"user_id:{user_id}" if user_id else None
+            print(f"  Searching for term: '{term}'...")
+            filter_str = f"user_id:{user_id}" if user_id else ""
+            
             request_body = {
                 "indexName": ALGOLIA_INDEX_NAME,
                 "query": term,
                 "hitsPerPage": 10,
-                "filters": filter_str if filter_str else ""
+                "filters": filter_str
             }
-            payload_algolia = {
-                "requests": [request_body]
-            }
+            
+            payload_algolia = {"requests": [request_body]}
             resp_algolia = requests.post(
                 f"https://{ALGOLIA_APP_ID}-dsn.algolia.net/1/indexes/*/queries",
                 headers=headers_algolia,
@@ -199,14 +245,12 @@ def mcp_search(query, user_id=None):
                 timeout=10
             )
             resp_algolia.raise_for_status()
+            
             results = resp_algolia.json().get("results", [])
-            found = 0
             for result in results:
                 for hit in result.get("hits", []):
-                    found += 1
                     obj_id = hit.get("objectID")
                     if obj_id and obj_id not in seen_ids:
-                        # Only keep relevant fields for the API response
                         clean_hit = {
                             "objectID": obj_id,
                             "title": hit.get("title", ""),
@@ -216,13 +260,113 @@ def mcp_search(query, user_id=None):
                         }
                         algolia_results.append(clean_hit)
                         seen_ids.add(obj_id)
-            print(f"found {found} results.")
-    print("Final Algolia results:", algolia_results)
+        
+        # Sort by relevance and date
+        sorted_results = _sort_by_relevance(algolia_results, search_terms)
+        response["algolia_hits"] = sorted_results
+        print(f"✅ Stage 3 complete: Found {len(sorted_results)} results")
+        
+    except Exception as e:
+        print(f"❌ Stage 3 failed: {e}")
+        response["algolia_hits"] = []
     
-    # Sort results by relevance (more search terms matched = higher relevance) and date (newer first)
+    # ===== STAGE 4: Synthesis =====
+    print("🧠 Stage 4: Synthesizing insights from results...")
+    try:
+        synthesis_prompt = (
+            f"You are analyzing journal search results for a user. "
+            f"Original query: '{query}' "
+            f"Search terms used: {search_terms} "
+            f"Found {len(response['algolia_hits'])} relevant entries. "
+            f"Provide a concise, insightful summary (2-3 sentences) that: "
+            f"1. Acknowledges what was found "
+            f"2. Highlights any patterns or insights "
+            f"3. Uses a warm, personal tone "
+            f"Focus on the most relevant findings and any emotional or temporal patterns. "
+            f"Results: {pyjson.dumps(response['algolia_hits'][:5], indent=2)}"
+        )
+        
+        synthesis_payload = {
+            "contents": [{"parts": [{"text": synthesis_prompt}]}],
+            "generationConfig": {"maxOutputTokens": 256}
+        }
+        
+        resp = requests.post(url, headers=headers, params=params, json=synthesis_payload, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+        
+        final_summary = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        response["final_summary"] = final_summary.strip()
+        print(f"✅ Stage 4 complete: Generated synthesis")
+        
+    except Exception as e:
+        print(f"❌ Stage 4 failed: {e}")
+        # Fallback summary
+        if response["algolia_hits"]:
+            response["final_summary"] = f"Found {len(response['algolia_hits'])} relevant entries for your query about {', '.join(search_terms)}."
+        else:
+            response["final_summary"] = "No relevant entries found for your query."
+    
+    # ===== STAGE 5: Memory Storage =====
+    print("💾 Stage 5: Storing query and results in memory...")
+    _store_memory(query, search_terms, response["final_summary"])
+    
+    return response
+
+
+def _check_memory(query, search_terms):
+    """Check local memory for similar past queries"""
+    try:
+        if not os.path.exists("memory_store.json"):
+            return None
+        
+        with open("memory_store.json", "r") as f:
+            memory = pyjson.load(f)
+        
+        # Simple similarity check (can be enhanced)
+        query_lower = query.lower()
+        for entry in memory.get("queries", []):
+            if any(term.lower() in query_lower for term in entry.get("search_terms", [])):
+                return entry
+        
+        return None
+    except Exception as e:
+        print(f"Memory check failed: {e}")
+        return None
+
+
+def _store_memory(query, search_terms, summary):
+    """Store query and results in local memory"""
+    try:
+        memory = {"queries": []}
+        
+        if os.path.exists("memory_store.json"):
+            with open("memory_store.json", "r") as f:
+                memory = pyjson.load(f)
+        
+        # Keep only last 50 queries to prevent file bloat
+        memory["queries"] = memory.get("queries", [])[-49:]
+        
+        new_entry = {
+            "query": query,
+            "search_terms": search_terms,
+            "summary": summary,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        memory["queries"].append(new_entry)
+        
+        with open("memory_store.json", "w") as f:
+            pyjson.dump(memory, f, indent=2)
+            
+    except Exception as e:
+        print(f"Memory storage failed: {e}")
+
+
+def _sort_by_relevance(hits, search_terms):
+    """Sort Algolia hits by relevance score and date"""
     def calculate_relevance(hit):
         relevance_score = 0
-        # Count how many search terms appear in title, summary, or tags
         for term in search_terms:
             term_lower = term.lower()
             if term_lower in hit.get("title", "").lower():
@@ -233,19 +377,8 @@ def mcp_search(query, user_id=None):
                 relevance_score += 1  # Tag matches are good
         return relevance_score
     
-    # Sort by relevance (descending) then by timestamp (descending - newest first)
-    sorted_results = sorted(
-        algolia_results,
+    return sorted(
+        hits,
         key=lambda x: (calculate_relevance(x), x.get("timestamp", "")),
         reverse=True
-    )
-    
-    print("Sorted results by relevance and date:", sorted_results)
-    
-    # Step 3: Return both Gemini's response and Algolia results (if any), formatted
-    return {
-        "gemini_response": gemini_response,
-        "results": sorted_results,
-        "search_terms": search_terms,
-        "is_search": is_search
-    } 
+    ) 

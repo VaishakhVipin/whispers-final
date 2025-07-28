@@ -40,8 +40,8 @@ export function SearchInterface({ onSearch }: SearchInterfaceProps) {
       console.log("Search result:", searchResult);
       
       // Extract results from the API response
-      const apiResults = searchResult.results || [];
-      const geminiResponseText = searchResult.gemini_response || "";
+      const apiResults = searchResult.algolia_hits || [];
+      const geminiResponseText = searchResult.final_summary || searchResult.stage1_response || "";
       
       setResults(apiResults);
       setGeminiResponse(geminiResponseText);
