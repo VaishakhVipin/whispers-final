@@ -81,47 +81,24 @@ sequenceDiagram
 ⚙️ Setup Instructions
 1. Clone Repo
 bash
-Copy
-Edit
-git clone https://github.com/VaishakhVipin/whispers-journal.git
-cd whispers
+
+git clone https://github.com/VaishakhVipin/whispers-final.git
+cd whispers-final
+
 2. Create .env
 env
-Copy
-Edit
-ASSEMBLYAI_API_KEY=your_assemblyai_key
-GEMINI_API_KEY=your_gemini_free_plan_key
-ALGOLIA_APP_ID=your_algolia_app_id
-ALGOLIA_API_KEY=your_algolia_api_key
-ALGOLIA_INDEX_NAME=whispers_logs
-SERVER_URL=wss://your-ngrok-or-host-url
+
+as mentioned in .env.example
+
 3. Install Dependencies
-bash
-Copy
-Edit
+
 pip install -r requirements.txt
+
 4. Run Locally
-bash
-Copy
-Edit
-uvicorn main:app --reload
-Frontend will auto-connect to /twilio/stream WebSocket via JS.
 
-5. Set Up Algolia MCP
-Clone their MCP Node server:
+cd backend; uvicorn main:app --reload
+cd frontend; bun run dev
 
-bash
-Copy
-Edit
-git clone https://github.com/algolia/mcp-node.git
-cd mcp-node
-npm install
-Run it:
-
-bash
-Copy
-Edit
-npm start
 Set your .env to point to this MCP server instance.
 
 ⚠️ NOTE: MCP is experimental. Be prepared to handle quirks.
